@@ -1,154 +1,146 @@
-//Grab data from keys.js
+//store dependencies as variables.
 var keys = require('./keys.js');
-var request = require('request');
-var twitter = require('twitter');
-var spotify = require('spotify');
-var client = new twitter(keys.twitterKeys);
+var twitter = require("twitter");
+var spotify = require("node-spotify-api");
+var request = require("request");
 var fs = require('fs');
 
-//Stored argument's array
-var nodeArgv = process.argv;
-var command = process.argv[2];
-//movie or song
-var x = "";
-//attaches multiple word arguments
-for (var i=3; i<nodeArgv.length; i++){
-  if(i>3 && i<nodeArgv.length){
-    x = x + "+" + nodeArgv[i];
-  } else{
-    x = x + nodeArgv[i];
-  }
-}
+//capture user input, and inform user of what to type in.
+console.log("Type my-tweets , spotify-this-song , movie-this , or do-what-it-says to get started!");
+//process[2] choses action, process[3] as search parameter for spotify or movie.
+var userCommand = process.argv[2];
+var secondCommand = process.argv[3];
+//process multiple words. Triggers if user types anything more than the above console logged options and first parameter.
+	for(i=4; i<process.argv.length; i++){
+	    secondCommand += '+' + process.argv[i];
+	}
 
-//switch case
-switch(command){
-  case "my-tweets":
-    showTweets();
-  break;
+function theGreatSwitch(){
+	//action statement, switch statement to declare what action to execute.
+	switch(userCommand){
 
-  case "spotify-this-song":
-    if(x){
-      spotifySong(x);
-    } else{
-      spotifySong("Fluorescent Adolescent");
-    }
-  break;
+		case 'my-tweets':
+		fetchTweets();
+		break;
 
-  case "movie-this":
-    if(x){
-      omdbData(x)
-    } else{
-      omdbData("Mr. Nobody")
-    }
-  break;
+		case 'spotify-this-song':
+		spotifyMe();
+		break;
 
-  case "do-what-it-says":
-    doThing();
-  break;
+		case 'movie-this':
+		aMovieForMe();
+		break;
 
-  default:
-    console.log("{Please enter a command: my-tweets, spotify-this-song, movie-this, do-what-it-says}");
-  break;
-}
+		case 'do-what-it-says':
+		followTheTextbook();
+		break;
+		
+	}
+};
+//functions/options
+function fetchTweets(){
+	console.log("Tweets headed your way!");
+	//new variable for instance of twitter, load keys from imported keys.js
+	var client = new twitter({
+		consumer_key: keys.twitterKeys.consumer_key,
+		consumer_secret: keys.twitterKeys.consumer_secret,
+		access_token_key: keys.twitterKeys.access_token_key,
+		access_token_secret: keys.twitterKeys.access_token_secret
+	});
 
-function showTweets(){
-  
-  var screenName = {screen_name: 'sam bouzroud'};
+	//parameters for twitter function.
+	var parameters = {
+		screen_name: 'multishifties',
+		count: 20
+	};
 
-  client.get('statuses/user_timeline', screenName, function(error, tweets, response){
-    if(!error){
-      for(var i = 0; i<tweets.length; i++){
-        var date = tweets[i].created_at;
-        console.log("@sambouzroud: " + tweets[i].text + " Created At: " + date.substring(0, 3));
-        console.log("-----------------------");
-        
-        
-        fs.appendFile('log.txt', "@sambouzroud: " + tweets[i].text + " Created At: " + date.substring(0, 3));
-        fs.appendFile('log.txt', "-----------------------");
-      }
-    }else{
-      console.log('Error occurred');
-    }
-  });
-}
+	//call the get method on our client variable twitter instance
+	client.get('statuses/user_timeline', parameters, function(error, tweets, response){
+		if (!error) {
+	        for (i=0; i<tweets.length; i++) {
+	            var returnedData = ('Number: ' + (i+1) + '\n' + tweets[i].created_at + '\n' + tweets[i].text + '\n');
+	            console.log(returnedData);
+	            console.log("-------------------------");
+	        }
+	    };
+	});
+};//end fetchTweets;
 
-function spotifySong(song){
-  spotify.search({ type: 'track', query: song}, function(error, data){
-    if(!error){
-      for(var i = 0; i < data.tracks.items.length; i++){
-        var songData = data.tracks.items[i];
-        
-        console.log("Artist: " + songData.artists[0].name);
-        
-        console.log("Song: " + songData.name);
-        
-        console.log("Preview URL: " + songData.preview_url);
-        
-        console.log("Album: " + songData.album.name);
-        console.log("-----------------------");
-        
-        
-        fs.appendFile('log.txt', songData.artists[0].name);
-        fs.appendFile('log.txt', songData.name);
-        fs.appendFile('log.txt', songData.preview_url);
-        fs.appendFile('log.txt', songData.album.name);
-        fs.appendFile('log.txt', "-----------------------");
-      }
-    } else{
-      console.log('Error occurred.');
-    }
-  });
-}
+function spotifyMe(){
+	console.log("Music for DAYS!");
 
-function omdbData(movie){
-  var omdbURL = 'http://www.omdbapi.com/?t=' + movie + '&plot=short&tomatoes=true';
+	//variable for search term, test if defined.
 
-  request(omdbURL, function (error, response, body){
-    if(!error && response.statusCode == 200){
-      var body = JSON.parse(body);
+	var searchTrack;
+	if(secondCommand === undefined){
+		searchTrack = "What's My Age Again?";
+	}else{
+		searchTrack = secondCommand;
+	}
+	//launch spotify search
+	spotify.search({type:'track', query:searchTrack}, function(err,data){
+	    if(err){
+	        console.log('Error occurred: ' + err);
+	        return;
+	    }else{
+	        //tried searching for release year! Spotify doesn't return this!
+	  		console.log("Artist: " + data.tracks.items[0].artists[0].name);
+	        console.log("Song: " + data.tracks.items[0].name);
+	        console.log("Album: " + data.tracks.items[0].album.name);
+	        console.log("Preview Here: " + data.tracks.items[0].preview_url);
+	    }
+	});
+};//end spotifyMe
 
-      console.log("Title: " + body.Title);
-      console.log("Release Year: " + body.Year);
-      console.log("IMdB Rating: " + body.imdbRating);
-      console.log("Country: " + body.Country);
-      console.log("Language: " + body.Language);
-      console.log("Plot: " + body.Plot);
-      console.log("Actors: " + body.Actors);
-      console.log("Rotten Tomatoes Rating: " + body.tomatoRating);
-      console.log("Rotten Tomatoes URL: " + body.tomatoURL);
+function aMovieForMe(){
+	console.log("Netflix and Chill?");
 
-      
-      fs.appendFile('log.txt', "Title: " + body.Title);
-      fs.appendFile('log.txt', "Release Year: " + body.Year);
-      fs.appendFile('log.txt', "IMdB Rating: " + body.imdbRating);
-      fs.appendFile('log.txt', "Country: " + body.Country);
-      fs.appendFile('log.txt', "Language: " + body.Language);
-      fs.appendFile('log.txt', "Plot: " + body.Plot);
-      fs.appendFile('log.txt', "Actors: " + body.Actors);
-      fs.appendFile('log.txt', "Rotten Tomatoes Rating: " + body.tomatoRating);
-      fs.appendFile('log.txt', "Rotten Tomatoes URL: " + body.tomatoURL);
+	//same as above, test if search term entered
+	var searchMovie;
+	if(secondCommand === undefined){
+		searchMovie = "Mr. Nobody";
+	}else{
+		searchMovie = secondCommand;
+	};
 
-    } else{
-      console.log('Error occurred.')
-    }
-    if(movie === "Mr. Nobody"){
-      console.log("-----------------------");
-      console.log("If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-      console.log("It's on Netflix!");
+	var url = 'http://www.omdbapi.com/?t=' + searchMovie +'&y=&plot=long&tomatoes=true&r=json';
+   	request(url, function(error, response, body){
+	    if(!error && response.statusCode == 200){
+	        console.log("Title: " + JSON.parse(body)["Title"]);
+	        console.log("Year: " + JSON.parse(body)["Year"]);
+	        console.log("IMDB Rating: " + JSON.parse(body)["imdbRating"]);
+	        console.log("Country: " + JSON.parse(body)["Country"]);
+	        console.log("Language: " + JSON.parse(body)["Language"]);
+	        console.log("Plot: " + JSON.parse(body)["Plot"]);
+	        console.log("Actors: " + JSON.parse(body)["Actors"]);
+	        console.log("Rotten Tomatoes Rating: " + JSON.parse(body)["tomatoRating"]);
+	        console.log("Rotten Tomatoes URL: " + JSON.parse(body)["tomatoURL"]);
+	    }
+    });
+};//end aMovieForMe
 
-      
-      fs.appendFile('log.txt', "-----------------------");
-      fs.appendFile('log.txt', "If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-      fs.appendFile('log.txt', "It's on Netflix!");
-    }
-  });
+function followTheTextbook(){
+	console.log("Looking at random.txt now");
+	fs.readFile("random.txt", "utf8", function(error, data) {
+	    if(error){
+     		console.log(error);
+     	}else{
 
-}
+     	//split data, declare variables
+     	var dataArr = data.split(',');
+        userCommand = dataArr[0];
+        secondCommand = dataArr[1];
+        //if multi-word search term, add.
+        for(i=2; i<dataArr.length; i++){
+            secondCommand = secondCommand + "+" + dataArr[i];
+        };
+        //run action
+		theGreatSwitch();
+		
+    	};//end else
 
-function doThing(){
-  fs.readFile('random.txt', "utf8", function(error, data){
-    var txt = data.split(',');
+    });//end readfile
 
-    spotifySong(txt[1]);
-  });
-}
+};//end followTheTextbook
+
+theGreatSwitch();
