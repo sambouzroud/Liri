@@ -1,146 +1,147 @@
-//store dependencies as variables.
-var keys = require('./keys.js');
-var twitter = require("twitter");
-var spotify = require("node-spotify-api");
-var request = require("request");
-var fs = require('fs');
+var keys = require("./keys.js");
+var twitter = keys.twitterKeys;
 
-//capture user input, and inform user of what to type in.
-console.log("Type my-tweets , spotify-this-song , movie-this , or do-what-it-says to get started!");
-//process[2] choses action, process[3] as search parameter for spotify or movie.
-var userCommand = process.argv[2];
-var secondCommand = process.argv[3];
-//process multiple words. Triggers if user types anything more than the above console logged options and first parameter.
-	for(i=4; i<process.argv.length; i++){
-	    secondCommand += '+' + process.argv[i];
-	}
 
-function theGreatSwitch(){
-	//action statement, switch statement to declare what action to execute.
-	switch(userCommand){
+var command = process.argv[2];
+var query = process.argv[3];
 
-		case 'my-tweets':
-		fetchTweets();
-		break;
 
-		case 'spotify-this-song':
-		spotifyMe();
-		break;
 
-		case 'movie-this':
-		aMovieForMe();
-		break;
+var myTweets = function() {
+	
+	var Twitter = require('twitter');
 
-		case 'do-what-it-says':
-		followTheTextbook();
-		break;
-		
-	}
-};
-//functions/options
-function fetchTweets(){
-	console.log("Tweets headed your way!");
-	//new variable for instance of twitter, load keys from imported keys.js
-	var client = new twitter({
-		consumer_key: keys.twitterKeys.consumer_key,
-		consumer_secret: keys.twitterKeys.consumer_secret,
-		access_token_key: keys.twitterKeys.access_token_key,
-		access_token_secret: keys.twitterKeys.access_token_secret
+	
+	var client = new Twitter({
+		consumer_key: twitter.consumer_key,
+		consumer_secret: twitter.consumer_secret,
+		access_token_key: twitter.access_token_key,
+		access_token_secret: twitter.access_token_secret
 	});
 
-	//parameters for twitter function.
-	var parameters = {
-		screen_name: 'multishifties',
-		count: 20
+	
+	var params = {
+		screen_name: 'sam bouzroud',
+		count: 4
 	};
 
-	//call the get method on our client variable twitter instance
-	client.get('statuses/user_timeline', parameters, function(error, tweets, response){
-		if (!error) {
-	        for (i=0; i<tweets.length; i++) {
-	            var returnedData = ('Number: ' + (i+1) + '\n' + tweets[i].created_at + '\n' + tweets[i].text + '\n');
-	            console.log(returnedData);
-	            console.log("-------------------------");
-	        }
-	    };
+	
+	client.get('statuses/user_timeline', params, function(error, tweets, response) {
+		if(error) {
+			console.log('Error occurred: ' + error);
+		} else { 
+	  	console.log("My 20 Most Recent Tweets");
+	  	console.log("");
+
+	  	for(var i = 0; i < tweets.length; i++) {
+	  		console.log("( #" + (i + 1) + " )  " + tweets[i].text);
+	  		console.log("Created:  " + tweets[i].created_at);
+	  		console.log("");
+	  	}
+	  }
 	});
-};//end fetchTweets;
+}
 
-function spotifyMe(){
-	console.log("Music for DAYS!");
+var spotifyThisSong = function(trackQuery) {
+	
+	var spotify = require('node-spotify-api');
 
-	//variable for search term, test if defined.
-
-	var searchTrack;
-	if(secondCommand === undefined){
-		searchTrack = "What's My Age Again?";
-	}else{
-		searchTrack = secondCommand;
+	
+	if(trackQuery === undefined) {
+		trackQuery = "nothing else matter";
 	}
-	//launch spotify search
-	spotify.search({type:'track', query:searchTrack}, function(err,data){
-	    if(err){
-	        console.log('Error occurred: ' + err);
-	        return;
-	    }else{
-	        //tried searching for release year! Spotify doesn't return this!
-	  		console.log("Artist: " + data.tracks.items[0].artists[0].name);
-	        console.log("Song: " + data.tracks.items[0].name);
-	        console.log("Album: " + data.tracks.items[0].album.name);
-	        console.log("Preview Here: " + data.tracks.items[0].preview_url);
+
+	
+	spotify.search({ type: 'track', query: trackQuery }, function(error, data) {
+	    if(error) { 
+	        console.log('Error occurred: ' + error);
+	    } else { 
+				for(var i = 0; i < data.tracks.items[0].artists.length; i++) {
+					if(i === 0) {
+						console.log("Artist(s):    " + data.tracks.items[0].artists[i].name);
+					} else {
+						console.log("              " + data.tracks.items[0].artists[i].name);
+					}
+				}
+				console.log("Song:         " + data.tracks.items[0].name);
+				console.log("Preview Link: " + data.tracks.items[0].preview_url);
+				console.log("Album:        " + data.tracks.items[0].album.name);
 	    }
+	 
+	 		
 	});
-};//end spotifyMe
+}
 
-function aMovieForMe(){
-	console.log("Netflix and Chill?");
+var movieThis = function(movieQuery) {
+	
+	var request = require("request");
 
-	//same as above, test if search term entered
-	var searchMovie;
-	if(secondCommand === undefined){
-		searchMovie = "Mr. Nobody";
-	}else{
-		searchMovie = secondCommand;
-	};
+	
+	if(movieQuery === undefined) {
+		movieQuery = "mr nobody";
+	}
 
-	var url = 'http://www.omdbapi.com/?t=' + searchMovie +'&y=&plot=long&tomatoes=true&r=json';
-   	request(url, function(error, response, body){
-	    if(!error && response.statusCode == 200){
-	        console.log("Title: " + JSON.parse(body)["Title"]);
-	        console.log("Year: " + JSON.parse(body)["Year"]);
-	        console.log("IMDB Rating: " + JSON.parse(body)["imdbRating"]);
-	        console.log("Country: " + JSON.parse(body)["Country"]);
-	        console.log("Language: " + JSON.parse(body)["Language"]);
-	        console.log("Plot: " + JSON.parse(body)["Plot"]);
-	        console.log("Actors: " + JSON.parse(body)["Actors"]);
-	        console.log("Rotten Tomatoes Rating: " + JSON.parse(body)["tomatoRating"]);
-	        console.log("Rotten Tomatoes URL: " + JSON.parse(body)["tomatoURL"]);
+	
+	request("http://www.omdbapi.com/?t=" + movieQuery + "&y=&plot=short&r=json", function(error, response, body) {
+	  if (!error && response.statusCode === 200) {
+	    console.log("* Title of the movie:         " + JSON.parse(body).Title);
+	    console.log("* Year the movie came out:    " + JSON.parse(body).Year);
+	    console.log("* IMDB Rating of the movie:   " + JSON.parse(body).imdbRating);
+	    console.log("* Country produced:           " + JSON.parse(body).Country);
+	    console.log("* Language of the movie:      " + JSON.parse(body).Language);
+	    console.log("* Plot of the movie:          " + JSON.parse(body).Plot);
+	    console.log("* Actors in the movie:        " + JSON.parse(body).Actors);
+
+	    
+	    for(var i = 0; i < JSON.parse(body).Ratings.length; i++) {
+	    	if(JSON.parse(body).Ratings[i].Source === "Rotten Tomatoes") {
+	    		console.log("* Rotten Tomatoes Rating:     " + JSON.parse(body).Ratings[i].Value);
+	    		if(JSON.parse(body).Ratings[i].Website !== undefined) {
+	    			console.log("* Rotten Tomatoes URL:        " + JSON.parse(body).Ratings[i].Website);
+	    		}
+	    	}
 	    }
-    });
-};//end aMovieForMe
+	  }
+	});
+}
 
-function followTheTextbook(){
-	console.log("Looking at random.txt now");
-	fs.readFile("random.txt", "utf8", function(error, data) {
-	    if(error){
-     		console.log(error);
-     	}else{
 
-     	//split data, declare variables
-     	var dataArr = data.split(',');
-        userCommand = dataArr[0];
-        secondCommand = dataArr[1];
-        //if multi-word search term, add.
-        for(i=2; i<dataArr.length; i++){
-            secondCommand = secondCommand + "+" + dataArr[i];
-        };
-        //run action
-		theGreatSwitch();
+if(command === "my-tweets") {
+	myTweets();
+} else if(command === "spotify-this-song") {
+	spotifyThisSong(query);
+} else if(command === "movie-this") {
+	movieThis(query);
+} else if(command === "do-what-it-says") {
+	
+	var fs = require("fs");
+
+	fs.readFile("random.txt", "utf-8", function(error, data) {
+		var command;
+		var query;
+
 		
-    	};//end else
+		if(data.indexOf(",") !== -1) {
+			var dataArr = data.split(",");
+			command = dataArr[0];
+			query = dataArr[1];
+		} else {
+			command = data;
+		}
 
-    });//end readfile
-
-};//end followTheTextbook
-
-theGreatSwitch();
+		
+		if(command === "my-tweets") {
+			myTweets();
+		} else if(command === "spotify-this-song") {
+			spotifyThisSong(query);
+		} else if(command === "movie-this") {
+			movieThis(query);
+		} else { 
+			console.log("Command from file is not a valid command! Please try again.")
+		}
+	});
+} else if(command === undefined) { 
+	console.log("Please enter a command to run LIRI.")
+} else { 
+	console.log("Command not recognized! Please try again.")
+}
